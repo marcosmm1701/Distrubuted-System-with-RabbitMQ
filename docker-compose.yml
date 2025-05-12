@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5673:5672"    # Puerto para la conexión con RabbitMQ
+      - "15672:15672"  # Puerto para el panel web (RabbitMQ Management)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - saimazoom-net
+
+networks:
+  saimazoom-net:
+    driver: bridge
