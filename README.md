@@ -1,93 +1,87 @@
-# Práctica 2
+# Índice
+1. [Introdución](#introduccion)
+2. [Definición del proyecto](#definicion)
+3. [Conclusiones](#solucion)
+3. [Conclusiones](#conclusiones)
 
 
+# 1. Introducción
+El objetivo de Saimazoom es el de crear un sistema para la gestión de pedidos online. Este sistema debe incluir a los actores:
+* **Cliente**, que realiza y gestiona pedidos de productos.
+* **Controlador** central, que gestiona todo el proceso.
+* **Robots**, que se encargan de buscar los productos en el almacén y colocarlos en las cintas transportadoras.
+* **Repartidores**, encargados de transportar el producto a la casa del cliente
+* **Admin** encargados de gestionar la base de datos del controlador central
 
-## Getting started
+El sistema debe de gestionar las interacciones entre todos estos actores, para las comunicaciones correspondientes se empleará una cola de mensajes.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+# 2. Definición del proyecto
+El sistema Saimazoom, como conjunto, debe gestionar pedidos, en los que los **clientes** pueden solicitar un producto. Una vez recibido un pedido, el **controlador** debe avisar a un **robot**, que mueve dicho producto del almacén a la cinta transportadora. Una vez en la cinta transportadora, el controlador avisa a un **repartidor**, que lleva el producto a la casa del **cliente**. 
+<!-- Las comunicaciones pertinentes entre estos elementos estarán gestionadas por un **controlador** central, que mantiene la comunicación entre los **clientes**, **robots** y **repartidores**. -->
 
-## Add your files
+## 2.1. Objetivos y funcionalidad
+Los objetivos principales son: 
+* La gestión de los pedidos de los **clientes**, que pueden hacer, ver  y cancelar pedidos.
+* La gestión de los **robots**, que reciben ordenes de de transportar los productos del almacen a la cinta transportadora.
+* La gestión de los **repartidores**, que reparten los productos que hay en la cinta transportadora a la casa de los clientes.
+* La gestión del **controlador** central, que tiene que mantener un control de productos, **clientes**, **robots** y **repartidores**. Tiene que guardar también los pedidos, con sus estados, que dependen de la relación con el resto de actores.
+* La comunicación entre el **controlador** y el resto de actores
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+Para cumplir estos objetivos es necesario desarrollar una serie de funcionalidades básicas:
+1. Registro de **Cliente**: registro desde una petición de un **Cliente** con un identificador de **cliente** que tiene que ser único.
+2. Registro de Pedido: registro en la base de datos del **controlador** central con un id de **cliente** y de producto, también le asigna un estado al pedido.
+3. Recepción de pedidos de los **Clientes**: hay que recibir y guardar los pedidos a realizar que están asociados a un **Cliente** y a un producto.
+4. Asignación de trabajo a los **Robots**: hay que asignar a los **robots** las tareas de transporte de productos correspondientes a pedidos.
+5. Asignación de trabajo a los **Repartidores**: hay que asignar a los **repartidores** las tareas de transporte de productos correspondientes a pedidos.
 
-```
-cd existing_repo
-git remote add origin https://git.eps.uam.es/redes2/2425/2311-2391/p06/practica-2.git
-git branch -M main
-git push -uf origin main
-```
+## 2.2. Requisitos
+Nos limitaremos a los requisitos funcionales, estos los podemos dividir en los siguientes apartados:
 
-## Integrate with your tools
+### 2.2.1. **Lógica de clientes**
+**LoCl1**. Registro en la aplicación en el que se recibe confirmación  
+**LoCl2**. Realizar un pedido, en el que se pide un producto  
+**LoCl3**. Pedir una lista de los pedidos realizados en la que se incluya id del producto correspondiente al pedido y estado del pedido  
+**LoCl4**. Pedir la cancelación de un pedido
 
-- [ ] [Set up project integrations](https://git.eps.uam.es/redes2/2425/2311-2391/p06/practica-2/-/settings/integrations)
+# 3. Implementación
+Nuestra implementación de Saimazoom se organiza en varios componentes principales, que son los responsables de realizar las tareas según los roles definidos en el proyecto.
 
-## Collaborate with your team
+1. **Controlador**:  
+   El **Controlador** es el núcleo del sistema, encargado de coordinar todos los actores. La comunicación entre los distintos componentes (clientes, robots y repartidores) se realiza a través de colas de mensajes, garantizando la asincronía y la distribución de tareas. El controlador maneja los pedidos, los asigna a los robots y repartidores, y actualiza el estado de los pedidos en el sistema.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+2. **Clientes**:  
+   Los clientes pueden interactuar con el sistema mediante una interfaz de comando a traves de la terminal. El cliente puede registrarse, realizar pedidos, consultar el estado de sus pedidos, ver una lista de sus pedidos y cancelarlos si es necesario. Los pedidos son gestionados por el controlador y pasan por un proceso que involucra tanto a los robots como a los repartidores.
 
-## Test and Deploy
+3. **Robots**:  
+   Los robots tienen la tarea de trasladar los productos desde el almacén hasta la cinta transportadora. Una vez que el controlador asigna una tarea al robot, el robot se comunica con el controlador para informar si el producto fue encontrado y movido correctamente. Cada robot cuenta con un tiempo de espera aleatorio, que simula el tiempo de búsqueda del producto en el almacén. Si todos los prpoductos de un pedido se encuentran en el almacen, el pedidio pasará a estar en el estado EN_ALMACEN, mientras que si se encuentra alguno de los productos, pasará al estado SIN_STOCK.
 
-Use the built-in continuous integration in GitLab.
+4. **Repartidores**:  
+   Los repartidores son los responsables de la entrega final de los productos a los clientes. Cuando el producto está en la cinta transportadora, el controlador asigna una tarea a un repartidor, quien debe intentar entregar el producto. Los repartidores tienen un número limitado de intentos para realizar la entrega, y en caso de fallar tres veces, el pedido se marca como FALLIDO. En caso de ser entregado, su estado pasará a ENTREGADO.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+5. **Persistencia**:  
+   Se utiliza el formato **Pickle** para almacenar de manera persistente los datos relacionados con los clientes, productos y pedidos. Esto permite mantener el estado del sistema incluso si se reinicia el mismo. El sistema recupera la información desde los archivos guardados y puede seguir operando sin pérdida de datos.
 
-***
+6. **Comunicación**:  
+   El sistema utiliza **RabbitMQ** para la gestión de la cola de mensajes entre el controlador y los demás actores (clientes, robots, repartidores). Este sistema de colas garantiza que las tareas se realicen de manera asíncrona, optimizando el flujo de trabajo y mejorando la eficiencia.
 
-# Editing this README
+# 4. Conclusiones
+Nuestro sistema Saimazoom ha sido diseñado para gestionar el proceso de pedidos de productos de forma eficiente y escalable. La implementación utiliza tecnologías como **RabbitMQ** para la comunicación asíncrona entre los distintos actores del sistema y **Pickle** para la persistencia de datos.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Entre las ventajas del sistema, podemos destacar:
 
-## Suggestions for a good README
+- **Escalabilidad**: La arquitectura basada en mensajes permite agregar más robots y repartidores sin afectar al rendimiento del sistema.
+- **Flexibilidad**: El sistema puede adaptarse fácilmente a nuevos requerimientos, como la integración de más tipos de productos o cambios en los procesos de entrega.
+- **Robustez**: La separación de responsabilidades entre el controlador, los robots, los repartidores y los clientes hace que el sistema sea modular y fácil de mantener.
+- **Asincronía**: Gracias al uso de RabbitMQ, el sistema puede manejar múltiples tareas en paralelo, mejorando el rendimiento general y reduciendo el tiempo de espera para los usuarios.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+# 4.1 Observaciones
+En nuestra implementación, los clientes envían su propio client_id al registrarse en el servidor. Esta decisión se tomó por simplicidad y para facilitar la trazabilidad y reconexión de los componentes, ajustándose a los objetivos de la práctica.
 
-## Name
-Choose a self-explaining name for your project.
+Sin embargo, en un entorno real, lo recomendable sería que un middleware centralizado generase los identificadores, garantizando unicidad, seguridad y mayor escalabilidad del sistema.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+# 4.2 Modo de ejecución
+Para poder ejecutar todos los módulos de forma automática y con el número de robots y repartidores deseado, se ha implementado un script llamado main_launcher.sh, con el que se lanzará todo el sistema.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+También se ha implementado un makefile para poder lanzar los módulos por separado, así como ejecutar todos los tests a la vez mediante el comando make test.
